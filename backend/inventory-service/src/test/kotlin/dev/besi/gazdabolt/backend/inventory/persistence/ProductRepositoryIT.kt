@@ -5,10 +5,14 @@ import dev.besi.gazdabolt.backend.inventory.persistence.entities.Product
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.SimpleProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.SubProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.repositories.ProductRepository
+import org.bson.Document
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -39,6 +43,11 @@ open class ProductRepositoryIT {
 
 	@Autowired
 	private lateinit var mongoTemplate: MongoTemplate
+
+	@AfterEach
+	fun cleanDb() {
+		mongoTemplate.db.getCollection(Product.PRODUCT_COLLECTION_NAME).deleteMany(Document())
+	}
 
 	@Test
 	fun `Ensure collection 'products' exists`() {
@@ -86,6 +95,55 @@ open class ProductRepositoryIT {
 		)
 
 		assertThat("Id of persisted object should not be null!", composite.id, not(blankOrNullString()))
+	}
+
+	@Test
+	fun `Ensure unique index works for PLU codes`() {
+		productRepository.save(
+			SimpleProduct(name = "product1", pluCode = 123)
+		)
+		assertThrows(DuplicateKeyException::class.java) {
+			productRepository.save(
+				SimpleProduct(name = "product2", pluCode = 123)
+			)
+		}
+
+		assertThrows(DuplicateKeyException::class.java) {
+			productRepository.save(
+				CompositeProduct(name = "composite", pluCode = 123)
+			)
+		}
+
+		assertThat(
+			"Only 1 product should be in the database!",
+			mongoTemplate.db.getCollection(Product.PRODUCT_COLLECTION_NAME).countDocuments(),
+			equalTo(1)
+		)
+	}
+
+	@Test
+	fun `Ensure unique index works for barcodes`() {
+		productRepository.save(
+			SimpleProduct(name = "product1", barCode = 123456789)
+		)
+
+		assertThrows(DuplicateKeyException::class.java) {
+			productRepository.save(
+				SimpleProduct(name = "product2", barCode = 123456789)
+			)
+		}
+
+		assertThrows(DuplicateKeyException::class.java) {
+			productRepository.save(
+				CompositeProduct(name = "composite", barCode = 123456789)
+			)
+		}
+
+		assertThat(
+			"Only 1 product should be in the database!",
+			mongoTemplate.db.getCollection(Product.PRODUCT_COLLECTION_NAME).countDocuments(),
+			equalTo(1)
+		)
 	}
 
 }

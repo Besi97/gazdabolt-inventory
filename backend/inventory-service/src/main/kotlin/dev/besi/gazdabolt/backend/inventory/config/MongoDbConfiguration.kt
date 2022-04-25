@@ -32,4 +32,6 @@ open class MongoDbConfiguration : AbstractMongoClientConfiguration() {
 		}
 	}
 
+	override fun autoIndexCreation(): Boolean = true
+
 }
