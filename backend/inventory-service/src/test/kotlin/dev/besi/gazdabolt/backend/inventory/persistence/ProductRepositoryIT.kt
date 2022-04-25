@@ -41,7 +41,7 @@ open class ProductRepositoryIT {
 	private lateinit var mongoTemplate: MongoTemplate
 
 	@Test
-	fun testProductsCollectionExists() {
+	fun `Ensure collection 'products' exists`() {
 		val collections = mongoTemplate.db.listCollectionNames()
 		assertThat(
 			"Collections should include '${Product.PRODUCT_COLLECTION_NAME}'",
@@ -50,7 +50,7 @@ open class ProductRepositoryIT {
 	}
 
 	@Test
-	fun testSimpleProductSaveSuccessful() {
+	fun `SimpleProduct instance saves successfully`() {
 		val id = productRepository.save(
 			SimpleProduct(
 				name = "test product",
@@ -63,7 +63,7 @@ open class ProductRepositoryIT {
 	}
 
 	@Test
-	fun testCompositeProductSaveSuccessful() {
+	fun `CompositeProduct instance saves successfully`() {
 		val product1 = productRepository.save(
 			SimpleProduct(
 				name = "product1"
@@ -80,8 +80,7 @@ open class ProductRepositoryIT {
 				name = "composite",
 				subProducts = listOf(
 					SubProduct(product1, 2),
-					SubProduct(product2, 3),
-					SubProduct(SimpleProduct(name = "asd"), 1)
+					SubProduct(product2, 3)
 				)
 			)
 		)
