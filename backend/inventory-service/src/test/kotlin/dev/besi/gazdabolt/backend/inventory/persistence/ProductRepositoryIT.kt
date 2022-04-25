@@ -146,4 +146,36 @@ open class ProductRepositoryIT {
 		)
 	}
 
+	@Test
+	fun `Test 'findProductByPluCode' works`() {
+		var product = productRepository.findProductByPluCode(123)
+
+		assertThat("Retrieved product should be null in empty database!", product, nullValue())
+
+		mongoTemplate.insert(SimpleProduct(name = "product", pluCode = 123))
+		mongoTemplate.insert(SimpleProduct(name = "wrong product", pluCode = 456))
+
+		product = productRepository.findProductByPluCode(123)
+
+		assertThat("Retrieved product should not be null!", product, not(nullValue()))
+		product = product!!
+		assertThat("Retrieved product's name should be 'product'", product.name, equalTo("product"))
+	}
+
+	@Test
+	fun `Test 'findProductByBarCode' works`() {
+		var product = productRepository.findProductByBarCode(123456789)
+
+		assertThat("Retrieved product should be null in empty database!", product, nullValue())
+
+		mongoTemplate.insert(SimpleProduct(name = "product", barCode = 123456789))
+		mongoTemplate.insert(SimpleProduct(name = "wrong product", barCode = 456))
+
+		product = productRepository.findProductByBarCode(123456789)
+
+		assertThat("Retrieved product should not be null!", product, not(nullValue()))
+		product = product!!
+		assertThat("Retrieved product's name should be 'product'", product.name, equalTo("product"))
+	}
+
 }
