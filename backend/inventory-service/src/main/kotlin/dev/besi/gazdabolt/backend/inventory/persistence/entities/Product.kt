@@ -1,25 +1,25 @@
 package dev.besi.gazdabolt.backend.inventory.persistence.entities
 
-import org.springframework.data.cassandra.core.mapping.Indexed
-import org.springframework.data.cassandra.core.mapping.PrimaryKey
-import java.util.UUID
+import org.springframework.data.annotation.Id
+import org.springframework.data.mongodb.core.index.Indexed
+import org.springframework.data.mongodb.core.mapping.Document
 
+@Document(Product.PRODUCT_COLLECTION_NAME)
 abstract class Product(
-	@PrimaryKey var id: UUID = UUID.randomUUID(),
+	@Id var id: String? = null,
 	var name: String? = null,
-	@Indexed var pluCode: Int? = null,
-	@Indexed var barCode: Long? = null,
+	@Indexed(unique = true, sparse = true) var pluCode: Int? = null,
+	@Indexed(unique = true, sparse = true) var barCode: Long? = null,
 	var description: String? = null,
-	stock: Int = 0
+	var stock: Int = 0
 ) {
-	var stock: Int = stock
-		set(value) {
-			if (value < 0) {
-				throw IllegalArgumentException()
-			} else {
-				field = value
-			}
-		}
+	init {
+		require(stock >= 0) { "Stock can not be set to negative: $stock" }
+	}
 
-	abstract var price: Int
+	abstract var price: Double
+
+	companion object {
+		const val PRODUCT_COLLECTION_NAME = "products"
+	}
 }
