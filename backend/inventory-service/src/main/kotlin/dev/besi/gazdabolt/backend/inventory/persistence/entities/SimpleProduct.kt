@@ -12,9 +12,15 @@ class SimpleProduct(
 	barCode: Long? = null,
 	description: String? = null,
 	stock: Int = 0,
-	override var price: Double = 0.0
+	price: Double = 0.0
 ) : Product(id, name, pluCode, barCode, description, stock) {
+	override var price: Double = 0.0
+		set(value) {
+			require(value >= 0) { "Product price can not be set to negative: $price" }
+			field = value
+		}
+
 	init {
-		require(price >= 0) { "Product price can not be set to negative: $price" }
+		this.price = price
 	}
 }
