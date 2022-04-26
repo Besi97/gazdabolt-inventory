@@ -11,10 +11,16 @@ abstract class Product(
 	@Indexed(unique = true, sparse = true) var pluCode: Int? = null,
 	@Indexed(unique = true, sparse = true) var barCode: Long? = null,
 	var description: String? = null,
-	var stock: Int = 0
+	stock: Int = 0
 ) {
+	var stock: Int = 0
+		set(value) {
+			require(value >= 0) { "Product stock quantity can not be set to a negative number: $value" }
+			field = value
+		}
+
 	init {
-		require(stock >= 0) { "Stock can not be set to negative: $stock" }
+		this.stock = stock
 	}
 
 	abstract var price: Double
