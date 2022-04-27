@@ -16,13 +16,11 @@ class DbCompositeProduct(
 	var subProducts: List<SubProduct> = listOf()
 ) : DbProduct(id, name, pluCode, barCode, description, stock) {
 	override var price: Double
-		get() = subProducts
-			.filterNot { it.subProduct == null || it.quantity == null }
-			.sumOf { it.subProduct!!.price * it.quantity!! }
+		get() = subProducts.sumOf { it.subProduct.price * it.quantity }
 		set(value) {}
 }
 
 data class SubProduct(
-	@DocumentReference var subProduct: DbProduct? = null,
-	var quantity: Int? = null
+	@DocumentReference var subProduct: DbProduct,
+	var quantity: Int
 )
