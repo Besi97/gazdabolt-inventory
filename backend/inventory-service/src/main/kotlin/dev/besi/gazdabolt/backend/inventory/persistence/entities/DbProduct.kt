@@ -4,8 +4,8 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
 
-@Document(Product.PRODUCT_COLLECTION_NAME)
-abstract class Product(
+@Document(DbProduct.PRODUCT_COLLECTION_NAME)
+abstract class DbProduct(
 	@Id var id: String? = null,
 	var name: String? = null,
 	@Indexed(unique = true, sparse = true) var pluCode: Int? = null,

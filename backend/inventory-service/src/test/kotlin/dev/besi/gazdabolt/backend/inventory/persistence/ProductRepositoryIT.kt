@@ -1,8 +1,8 @@
 package dev.besi.gazdabolt.backend.inventory.persistence
 
-import dev.besi.gazdabolt.backend.inventory.persistence.entities.CompositeProduct
-import dev.besi.gazdabolt.backend.inventory.persistence.entities.Product
-import dev.besi.gazdabolt.backend.inventory.persistence.entities.SimpleProduct
+import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbCompositeProduct
+import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
+import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbSimpleProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.SubProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.repositories.ProductRepository
 import org.bson.Document
@@ -46,22 +46,22 @@ open class ProductRepositoryIT {
 
 	@AfterEach
 	fun cleanDb() {
-		mongoTemplate.db.getCollection(Product.PRODUCT_COLLECTION_NAME).deleteMany(Document())
+		mongoTemplate.db.getCollection(DbProduct.PRODUCT_COLLECTION_NAME).deleteMany(Document())
 	}
 
 	@Test
 	fun `Ensure collection 'products' exists`() {
 		val collections = mongoTemplate.db.listCollectionNames()
 		assertThat(
-			"Collections should include '${Product.PRODUCT_COLLECTION_NAME}'",
-			collections, hasItem(Product.PRODUCT_COLLECTION_NAME)
+			"Collections should include '${DbProduct.PRODUCT_COLLECTION_NAME}'",
+			collections, hasItem(DbProduct.PRODUCT_COLLECTION_NAME)
 		)
 	}
 
 	@Test
 	fun `SimpleProduct instance saves successfully`() {
 		val id = productRepository.save(
-			SimpleProduct(
+			DbSimpleProduct(
 				name = "test product",
 				pluCode = 123,
 				description = "test product description"
@@ -74,18 +74,18 @@ open class ProductRepositoryIT {
 	@Test
 	fun `CompositeProduct instance saves successfully`() {
 		val product1 = productRepository.save(
-			SimpleProduct(
+			DbSimpleProduct(
 				name = "product1"
 			)
 		)
 		val product2 = productRepository.save(
-			SimpleProduct(
+			DbSimpleProduct(
 				name = "product2"
 			)
 		)
 
 		val composite = productRepository.save(
-			CompositeProduct(
+			DbCompositeProduct(
 				name = "composite",
 				subProducts = listOf(
 					SubProduct(product1, 2),
@@ -100,23 +100,23 @@ open class ProductRepositoryIT {
 	@Test
 	fun `Ensure unique index works for PLU codes`() {
 		productRepository.save(
-			SimpleProduct(name = "product1", pluCode = 123)
+			DbSimpleProduct(name = "product1", pluCode = 123)
 		)
 		assertThrows(DuplicateKeyException::class.java) {
 			productRepository.save(
-				SimpleProduct(name = "product2", pluCode = 123)
+				DbSimpleProduct(name = "product2", pluCode = 123)
 			)
 		}
 
 		assertThrows(DuplicateKeyException::class.java) {
 			productRepository.save(
-				CompositeProduct(name = "composite", pluCode = 123)
+				DbCompositeProduct(name = "composite", pluCode = 123)
 			)
 		}
 
 		assertThat(
 			"Only 1 product should be in the database!",
-			mongoTemplate.db.getCollection(Product.PRODUCT_COLLECTION_NAME).countDocuments(),
+			mongoTemplate.db.getCollection(DbProduct.PRODUCT_COLLECTION_NAME).countDocuments(),
 			equalTo(1)
 		)
 	}
@@ -124,24 +124,24 @@ open class ProductRepositoryIT {
 	@Test
 	fun `Ensure unique index works for barcodes`() {
 		productRepository.save(
-			SimpleProduct(name = "product1", barCode = 123456789)
+			DbSimpleProduct(name = "product1", barCode = 123456789)
 		)
 
 		assertThrows(DuplicateKeyException::class.java) {
 			productRepository.save(
-				SimpleProduct(name = "product2", barCode = 123456789)
+				DbSimpleProduct(name = "product2", barCode = 123456789)
 			)
 		}
 
 		assertThrows(DuplicateKeyException::class.java) {
 			productRepository.save(
-				CompositeProduct(name = "composite", barCode = 123456789)
+				DbCompositeProduct(name = "composite", barCode = 123456789)
 			)
 		}
 
 		assertThat(
 			"Only 1 product should be in the database!",
-			mongoTemplate.db.getCollection(Product.PRODUCT_COLLECTION_NAME).countDocuments(),
+			mongoTemplate.db.getCollection(DbProduct.PRODUCT_COLLECTION_NAME).countDocuments(),
 			equalTo(1)
 		)
 	}
@@ -152,8 +152,8 @@ open class ProductRepositoryIT {
 
 		assertThat("Retrieved product should be null in empty database!", product, nullValue())
 
-		mongoTemplate.insert(SimpleProduct(name = "product", pluCode = 123))
-		mongoTemplate.insert(SimpleProduct(name = "wrong product", pluCode = 456))
+		mongoTemplate.insert(DbSimpleProduct(name = "product", pluCode = 123))
+		mongoTemplate.insert(DbSimpleProduct(name = "wrong product", pluCode = 456))
 
 		product = productRepository.findProductByPluCode(123)
 
@@ -168,8 +168,8 @@ open class ProductRepositoryIT {
 
 		assertThat("Retrieved product should be null in empty database!", product, nullValue())
 
-		mongoTemplate.insert(SimpleProduct(name = "product", barCode = 123456789))
-		mongoTemplate.insert(SimpleProduct(name = "wrong product", barCode = 456))
+		mongoTemplate.insert(DbSimpleProduct(name = "product", barCode = 123456789))
+		mongoTemplate.insert(DbSimpleProduct(name = "wrong product", barCode = 456))
 
 		product = productRepository.findProductByBarCode(123456789)
 

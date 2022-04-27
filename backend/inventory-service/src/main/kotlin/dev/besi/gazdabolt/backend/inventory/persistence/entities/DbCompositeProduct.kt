@@ -4,9 +4,9 @@ import org.springframework.data.annotation.TypeAlias
 import org.springframework.data.mongodb.core.mapping.Document
 import org.springframework.data.mongodb.core.mapping.DocumentReference
 
-@Document(Product.PRODUCT_COLLECTION_NAME)
+@Document(DbProduct.PRODUCT_COLLECTION_NAME)
 @TypeAlias("CompositeProduct")
-class CompositeProduct(
+class DbCompositeProduct(
 	id: String? = null,
 	name: String? = null,
 	pluCode: Int? = null,
@@ -14,7 +14,7 @@ class CompositeProduct(
 	description: String? = null,
 	stock: Int = 0,
 	var subProducts: List<SubProduct> = listOf()
-) : Product(id, name, pluCode, barCode, description, stock) {
+) : DbProduct(id, name, pluCode, barCode, description, stock) {
 	override var price: Double
 		get() = subProducts
 			.filterNot { it.subProduct == null || it.quantity == null }
@@ -23,6 +23,6 @@ class CompositeProduct(
 }
 
 data class SubProduct(
-	@DocumentReference var subProduct: Product? = null,
+	@DocumentReference var subProduct: DbProduct? = null,
 	var quantity: Int? = null
 )
