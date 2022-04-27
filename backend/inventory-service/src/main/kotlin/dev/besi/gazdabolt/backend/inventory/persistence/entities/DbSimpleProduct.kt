@@ -1,5 +1,7 @@
 package dev.besi.gazdabolt.backend.inventory.persistence.entities
 
+import dev.besi.gazdabolt.backend.inventory.service.Product
+import dev.besi.gazdabolt.backend.inventory.service.SimpleProduct
 import org.springframework.data.annotation.TypeAlias
 import org.springframework.data.mongodb.core.mapping.Document
 
@@ -23,4 +25,6 @@ class DbSimpleProduct(
 	init {
 		this.price = price
 	}
+
+	override fun toDomainPojo(): Product = SimpleProduct.from(this)
 }

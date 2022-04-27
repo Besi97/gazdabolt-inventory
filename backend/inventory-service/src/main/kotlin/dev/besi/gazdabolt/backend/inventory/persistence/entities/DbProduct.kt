@@ -1,5 +1,6 @@
 package dev.besi.gazdabolt.backend.inventory.persistence.entities
 
+import dev.besi.gazdabolt.backend.inventory.service.Product
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.index.Indexed
 import org.springframework.data.mongodb.core.mapping.Document
@@ -24,6 +25,8 @@ abstract class DbProduct(
 	}
 
 	abstract var price: Double
+
+	abstract fun toDomainPojo(): Product
 
 	companion object {
 		const val PRODUCT_COLLECTION_NAME = "products"
