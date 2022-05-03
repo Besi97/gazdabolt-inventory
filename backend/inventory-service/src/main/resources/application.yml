@@ -1,0 +1,17 @@
+spring:
+  config:
+    import: "optional:zookeeper:"
+  cloud:
+    zookeeper:
+      config:
+        name: inventory-service
+        default-context: gazdabolt
+        root: gazdabolt
+        profile-separator: "::"
+        fail-fast: false
+  data:
+    mongodb:
+      database: "inventory"
+      port: 27017
+      host: localhost
+      auto-index-creation: true

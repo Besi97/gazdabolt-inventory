@@ -1,5 +1,6 @@
 package dev.besi.gazdabolt.backend.inventory.persistence
 
+import dev.besi.gazdabolt.backend.inventory.AbstractIT
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbCompositeProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbSimpleProduct
@@ -11,32 +12,11 @@ import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.data.mongodb.core.MongoTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.MongoDBContainer
-import org.testcontainers.junit.jupiter.Container
-import org.testcontainers.junit.jupiter.Testcontainers
 import kotlin.test.Test
 
-@SpringBootTest
-@Testcontainers
-open class ProductRepositoryIT {
-
-	companion object {
-		@Container
-		private val mongo = MongoDBContainer("mongo:5.0.7")
-
-		@JvmStatic
-		@DynamicPropertySource
-		fun setupMongoSpringConfig(registry: DynamicPropertyRegistry) {
-			registry.add("spring.data.mongodb.database") { "test_db" }
-			registry.add("spring.data.mongodb.host", mongo::getHost)
-			registry.add("spring.data.mongodb.port") { mongo.getMappedPort(27017).toString() }
-		}
-	}
+open class ProductRepositoryIT : AbstractIT() {
 
 	@Autowired
 	private lateinit var productRepository: ProductRepository
