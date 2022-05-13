@@ -15,7 +15,7 @@ import org.testcontainers.utility.DockerImageName
 import kotlin.test.AfterTest
 
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext
 @Testcontainers
 abstract class AbstractIT {
 
