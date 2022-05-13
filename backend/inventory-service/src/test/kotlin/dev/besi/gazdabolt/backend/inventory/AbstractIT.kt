@@ -1,7 +1,10 @@
 package dev.besi.gazdabolt.backend.inventory
 
 import org.junit.jupiter.api.BeforeAll
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.cloud.zookeeper.serviceregistry.ZookeeperAutoServiceRegistration
+import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.GenericContainer
@@ -9,18 +12,23 @@ import org.testcontainers.containers.MongoDBContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import org.testcontainers.utility.DockerImageName
+import kotlin.test.AfterTest
 
 @SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @Testcontainers
 abstract class AbstractIT {
 
+	@Autowired
+	lateinit var zookeeperAutoServiceRegistration: ZookeeperAutoServiceRegistration
+
 	companion object {
 		@Container
-		protected val mongo = MongoDBContainer("mongo:5.0.7")
+		protected var mongo: MongoDBContainer = MongoDBContainer("mongo:5.0.7")
 
 		@JvmStatic
 		@Container
-		protected val zookeeper: GenericContainer<*> =
+		protected var zookeeper: GenericContainer<*> =
 			GenericContainer(DockerImageName.parse("zookeeper:3.8.0"))
 				.withExposedPorts(2181)
 
@@ -40,7 +48,13 @@ abstract class AbstractIT {
 		@BeforeAll
 		fun setZookeeperConnectString() {
 			System.setProperty("spring.cloud.zookeeper.connect-string", "localhost:${zookeeper.getMappedPort(2181)}")
+			System.setProperty("spring.cloud.zookeeper.max-retries", "0")
 		}
+	}
+
+	@AfterTest
+	fun disconnectCurator() {
+		zookeeperAutoServiceRegistration.destroy()
 	}
 
 }

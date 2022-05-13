@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConstructorBinding
 	prefix = "gazdabolt.inventory-service"
 )
 @ConstructorBinding
-data class InventoryServiceProperties(
+class InventoryServiceProperties(
 	var failOnInsufficientResources: Boolean = Defaults.FAIL_ON_INSUFFICIENT_RESOURCES
 ) {
 	object Defaults {

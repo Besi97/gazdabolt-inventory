@@ -1,0 +1,39 @@
+type Query {
+    products: [Product!]
+    productById(id: ID!): Product
+    productByPluCode(pluCode: Int!): Product
+    productByBarCode(barCode: Long!): Product
+}
+
+interface Product {
+    id: ID!
+    name: String!
+    pluCode: Int
+    barCode: Long
+    description: String
+    stock: Int
+    price: Float
+}
+
+type SimpleProduct implements Product {
+    id: ID!
+    name: String!
+    pluCode: Int
+    barCode: Long
+    description: String
+    stock: Int
+    price: Float
+}
+
+type CompositeProduct implements Product {
+    id: ID!
+    name: String!
+    pluCode: Int
+    barCode: Long
+    description: String
+    stock: Int
+    price: Float
+    subProducts: [Product!]
+}
+
+scalar Long
