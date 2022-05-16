@@ -14,21 +14,24 @@ abstract class DbProduct(
 	var description: String? = null,
 	stock: Int = 0
 ) {
+	companion object {
+		const val PRODUCT_COLLECTION_NAME = "products"
+	}
+
 	var stock: Int = 0
 		set(value) {
 			require(value >= 0) { "Product stock quantity can not be set to a negative number: $value" }
 			field = value
 		}
 
+	abstract var price: Double
+
 	init {
 		this.stock = stock
 	}
 
-	abstract var price: Double
-
 	abstract fun toDomainPojo(): Product
 
-	companion object {
-		const val PRODUCT_COLLECTION_NAME = "products"
-	}
+	override fun equals(other: Any?): Boolean =
+		other is DbProduct && id == other.id
 }
