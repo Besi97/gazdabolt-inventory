@@ -293,6 +293,36 @@ class ProductControllerIT(
 			.valueIsNull()
 	}
 
+	@Test
+	fun `Ensure 'createProduct' mutation works`() {
+		val request = """mutation CreateProduct(${'$'}product: ApiProductInput!) {
+			|   product: createProduct(product: ${'$'}product) {
+			|       id
+			|       name
+			|       price
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "test input product", price = 15.6f).toMap())
+			.executeAndVerifyWithPath("product")
+			.entity(Map::class.java)
+			.satisfies {
+				run {
+					assertThat("Returned product should have 3 fields!", it, aMapWithSize(3))
+					assertThat("Product ID should not be blank!", it["id"] as String, `is`(not(blankOrNullString())))
+					assertThat("Product name should match input!", it["name"], equalTo("test input product"))
+					assertThat("Product price should match input!", it["price"] as Double, closeTo(15.6, 1e-6))
+				}
+			}
+	}
+
+	@Test
+	fun `Ensure validation for 'createProduct' works`() {
+		TODO("Not implemented yet")
+	}
+
 }
 
 fun GraphQlTester.Request<*>.executeAndVerifyWithPath(path: String) =

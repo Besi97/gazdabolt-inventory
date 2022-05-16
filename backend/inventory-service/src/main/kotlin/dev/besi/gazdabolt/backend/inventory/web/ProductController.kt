@@ -2,10 +2,13 @@ package dev.besi.gazdabolt.backend.inventory.web
 
 import dev.besi.gazdabolt.backend.inventory.service.Product
 import dev.besi.gazdabolt.backend.inventory.service.ProductService
+import dev.besi.gazdabolt.backend.inventory.service.SimpleProduct
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.graphql.data.method.annotation.Argument
+import org.springframework.graphql.data.method.annotation.MutationMapping
 import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
+import javax.validation.Valid
 
 @Controller
 class ProductController(
@@ -13,15 +16,30 @@ class ProductController(
 ) {
 
 	@QueryMapping
-	fun products(): Collection<Product> = productService.listAllProducts()
+	fun products(): Collection<ApiProduct> =
+		productService.listAllProducts().map(Product::toApiProduct)
 
 	@QueryMapping
-	fun productById(@Argument id: String): Product? = productService.findProductById(id)
+	fun productById(@Argument id: String): ApiProduct? =
+		productService.findProductById(id)?.toApiProduct()
 
 	@QueryMapping
-	fun productByPluCode(@Argument pluCode: Int): Product? = productService.findProductByPluCode(pluCode)
+	fun productByPluCode(@Argument pluCode: Int): ApiProduct? =
+		productService.findProductByPluCode(pluCode)?.toApiProduct()
 
 	@QueryMapping
-	fun productByBarCode(@Argument barCode: Long): Product? = productService.findProductByBarCode(barCode)
+	fun productByBarCode(@Argument barCode: Long): ApiProduct? =
+		productService.findProductByBarCode(barCode)?.toApiProduct()
+
+	@MutationMapping
+	fun createProduct(@Argument @Valid product: ApiProductInput): ApiProduct = productService.createProduct(
+		SimpleProduct(
+			name = product.name,
+			pluCode = product.pluCode,
+			barCode = product.barCode,
+			description = product.description,
+			price = product.price.toDouble()
+		)
+	).toApiProduct()
 
 }

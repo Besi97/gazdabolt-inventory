@@ -19,4 +19,6 @@ class ProductService(
 
 	fun findProductByBarCode(barCode: Long): Product? = repository.findProductByBarCode(barCode)?.toDomainPojo()
 
+	fun createProduct(product: Product): Product = repository.save(product.toDbProduct()).toDomainPojo()
+
 }

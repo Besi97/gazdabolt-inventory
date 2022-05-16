@@ -1,6 +1,7 @@
 package dev.besi.gazdabolt.backend.inventory.service
 
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
+import dev.besi.gazdabolt.backend.inventory.web.ApiProduct
 
 sealed interface Product {
 	val id: String?
@@ -12,4 +13,5 @@ sealed interface Product {
 	val price: Double
 
 	fun toDbProduct(): DbProduct
+	fun toApiProduct(): ApiProduct
 }

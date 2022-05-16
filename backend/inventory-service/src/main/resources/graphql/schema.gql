@@ -1,11 +1,15 @@
 type Query {
-    products: [Product!]
-    productById(id: ID!): Product
-    productByPluCode(pluCode: Int!): Product
-    productByBarCode(barCode: Long!): Product
+    products: [ApiProduct!]
+    productById(id: ID!): ApiProduct
+    productByPluCode(pluCode: Int!): ApiProduct
+    productByBarCode(barCode: Long!): ApiProduct
 }
 
-interface Product {
+type Mutation {
+    createProduct(product: ApiProductInput!): ApiProduct
+}
+
+interface ApiProduct {
     id: ID!
     name: String!
     pluCode: Int
@@ -15,7 +19,7 @@ interface Product {
     price: Float
 }
 
-type SimpleProduct implements Product {
+type ApiSimpleProduct implements ApiProduct {
     id: ID!
     name: String!
     pluCode: Int
@@ -25,7 +29,7 @@ type SimpleProduct implements Product {
     price: Float
 }
 
-type CompositeProduct implements Product {
+type ApiCompositeProduct implements ApiProduct {
     id: ID!
     name: String!
     pluCode: Int
@@ -33,7 +37,15 @@ type CompositeProduct implements Product {
     description: String
     stock: Int
     price: Float
-    subProducts: [Product!]
+    subProducts: [ApiProduct!]
+}
+
+input ApiProductInput {
+    name: String!
+    pluCode: Int
+    barCode: Long
+    description: String
+    price: Float
 }
 
 scalar Long

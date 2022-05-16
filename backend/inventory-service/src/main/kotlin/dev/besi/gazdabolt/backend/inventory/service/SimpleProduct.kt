@@ -2,6 +2,8 @@ package dev.besi.gazdabolt.backend.inventory.service
 
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbSimpleProduct
+import dev.besi.gazdabolt.backend.inventory.web.ApiProduct
+import dev.besi.gazdabolt.backend.inventory.web.ApiSimpleProduct
 
 data class SimpleProduct(
 	override val id: String? = null,
@@ -32,4 +34,7 @@ data class SimpleProduct(
 
 	override fun toDbProduct(): DbProduct =
 		DbSimpleProduct(id, name, pluCode, barCode, description, stock, price)
+
+	override fun toApiProduct(): ApiProduct =
+		ApiSimpleProduct(id, name, pluCode, barCode, description, stock, price)
 }

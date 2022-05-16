@@ -3,6 +3,8 @@ package dev.besi.gazdabolt.backend.inventory.service
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbCompositeProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.SubProduct
+import dev.besi.gazdabolt.backend.inventory.web.ApiCompositeProduct
+import dev.besi.gazdabolt.backend.inventory.web.ApiProduct
 
 data class CompositeProduct(
 	override val id: String? = null,
@@ -44,5 +46,17 @@ data class CompositeProduct(
 			description,
 			stock,
 			subProducts.map { SubProduct(it.key.toDbProduct(), it.value) }
+		)
+
+	override fun toApiProduct(): ApiProduct =
+		ApiCompositeProduct(
+			id,
+			name,
+			pluCode,
+			barCode,
+			description,
+			stock,
+			price,
+			subProducts.mapKeys { it.key.toApiProduct() }
 		)
 }

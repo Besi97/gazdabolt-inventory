@@ -8,6 +8,7 @@ import dev.besi.gazdabolt.backend.inventory.persistence.repositories.ProductRepo
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.repository.findByIdOrNull
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -120,6 +121,27 @@ class ProductServiceIT(
 		val p2 = service.findProductByBarCode(0)
 
 		assertThat("Result should be null for unknown ID", p2, nullValue())
+	}
+
+	@Test
+	fun `Ensure 'createProduct' works`() {
+		val product = SimpleProduct(name = "createProduct test", pluCode = 654, stock = 3)
+
+		val result = service.createProduct(product)
+
+		assertThat("Result should not be null!", result, notNullValue())
+		val id = result.id
+		assertThat("Result ID should not be null!", id, notNullValue())
+
+		val persisted = repository.findByIdOrNull(id)
+
+		assertThat("DbProduct should exist!", persisted, notNullValue())
+		assertThat("DbProduct name should be the same!", persisted!!.name, equalTo(product.name))
+		assertThat("DbProduct pluCode should be the same!", persisted.pluCode, equalTo(product.pluCode))
+		assertThat("DbProduct stock should be the same!", persisted.stock, equalTo(product.stock))
+		assertThat("DbProduct barCode should be null!", persisted.barCode, nullValue())
+		assertThat("DbProduct description should be null!", persisted.description, nullValue())
+		assertThat("DbProduct price should be 0!", persisted.price, equalTo(0.0))
 	}
 
 }
