@@ -305,7 +305,10 @@ class ProductControllerIT(
 		""".trimMargin()
 
 		graphQlTester.document(request)
-			.variable("product", ApiProductInput(name = "test input product", price = 15.6f).toMap())
+			.variable(
+				"product",
+				ApiProductInput(name = "test input product", price = 15.6f, pluCode = 195).toMap()
+			)
 			.executeAndVerifyWithPath("product")
 			.entity(Map::class.java)
 			.satisfies {
@@ -316,6 +319,12 @@ class ProductControllerIT(
 					assertThat("Product price should match input!", it["price"] as Double, closeTo(15.6, 1e-6))
 				}
 			}
+
+		val persisted = repository.findProductByPluCode(195)
+
+		assertThat("Product should be in the DB!", persisted, notNullValue())
+		assertThat("Persisted name does not match input!", persisted!!.name, equalTo("test input product"))
+		assertThat("Persisted price does not match input!", persisted.price, closeTo(15.6, 1e-6))
 	}
 
 	@Test
