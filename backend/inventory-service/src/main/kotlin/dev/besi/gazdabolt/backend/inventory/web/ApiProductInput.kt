@@ -11,8 +11,8 @@ class ApiProductInput (
 		HashMap<String, String>().also {
 			it["name"] = name
 			pluCode?.let { plu -> it["pluCode"] = plu.toString() }
-			barCode?.let { bar -> it["pluCode"] = bar.toString() }
-			description?.let { description -> it["pluCode"] = description }
+			barCode?.let { bar -> it["barCode"] = bar.toString() }
+			description?.let { description -> it["description"] = description }
 			it["price"] = price.toString()
 		}
 }

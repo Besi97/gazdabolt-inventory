@@ -10,6 +10,7 @@ import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.graphql.test.tester.GraphQlTester
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -329,10 +330,92 @@ class ProductControllerIT(
 
 	@Test
 	fun `Ensure validation for 'createProduct' works`() {
-		TODO("Not implemented yet")
+		val request = """mutation CreateProduct(${'$'}product: ApiProductInput!) {
+			|   product: createProduct(product: ${'$'}product) {
+			|       id
+			|       name
+			|       price
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "asdfghjkleasdfghjkleasdfghjkle").toMap())
+			.execute()
+			.errors()
+			.verify()
+
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "asdfghjkléasdfghjkléasdfghjkléa").toMap())
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Exception while directive getting applied on input field: " +
+						"Maximum length requirement of 30 characters is not fulfilled for field name")
+					?: false
+			}
+
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "asdfghjklé", pluCode = -1).toMap())
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Exception while directive getting applied on input field: " +
+						"Non-negative requirement not fulfilled for field pluCode")
+					?: false
+			}
+
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "asd", barCode = -1).toMap())
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Exception while directive getting applied on input field: " +
+						"Non-negative requirement not fulfilled for field barCode")
+					?: false
+			}
+
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "asd", price = -15.2f).toMap())
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Exception while directive getting applied on input field: " +
+						"Non-negative requirement not fulfilled for field price")
+					?: false
+			}
+	}
+
+	@Test
+	fun `Ensure input formatting for 'createProduct' works`() {
+		val request = """mutation CreateProduct(${'$'}product: ApiProductInput!) {
+			|   product: createProduct(product: ${'$'}product) {
+			|       id
+			|       name
+			|       price
+			|   }
+			|}
+		""".trimMargin()
+
+		var id = ""
+		graphQlTester.document(request)
+			.variable("product", ApiProductInput(name = "  asdf    \n  \t ").toMap())
+			.executeAndVerifyWithPath("product")
+			.entity(Map::class.java)
+			.satisfies {
+				run {
+					assertThat("Returned product should have 3 fields!", it, aMapWithSize(3))
+					assertThat("Product name should be trimmed!", it["name"] as String, equalTo("asdf"))
+					id = it["id"] as String
+				}
+			}
+
+		val persisted = repository.findByIdOrNull(id)
+		assertThat("Product should be persisted!", persisted, notNullValue())
+		assertThat("Product name should be 'asdf'!", persisted!!.name, equalTo("asdf"))
 	}
 
 }
 
-fun GraphQlTester.Request<*>.executeAndVerifyWithPath(path: String) =
+fun GraphQlTester.Request<*>.executeAndVerifyWithPath(path: String): GraphQlTester.Path =
 	execute().errors().verify().path(path)

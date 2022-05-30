@@ -15,7 +15,13 @@ open class GraphQLConfig {
 			.coercing(GraphqlLongCoercing())
 			.build()
 
-		return RuntimeWiringConfigurer { it.scalar(longScalar) }
+		return RuntimeWiringConfigurer {
+			it
+				.scalar(longScalar)
+				.directive(TrimDirectiveWiring.DIRECTIVE_NAME, TrimDirectiveWiring())
+				.directive(SizeDirectiveWiring.DIRECTIVE_NAME, SizeDirectiveWiring())
+				.directive(NonNegativeDirectiveWiring.DIRECTIVE_NAME, NonNegativeDirectiveWiring())
+		}
 	}
 
 }

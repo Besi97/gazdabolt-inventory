@@ -41,11 +41,11 @@ type ApiCompositeProduct implements ApiProduct {
 }
 
 input ApiProductInput {
-    name: String!
-    pluCode: Int
-    barCode: Long
-    description: String
-    price: Float
+    name: String! @Trim @Size(max: 30)
+    pluCode: Int @NonNegative
+    barCode: Long @NonNegative
+    description: String @Trim
+    price: Float @NonNegative
 }
 
 scalar Long
