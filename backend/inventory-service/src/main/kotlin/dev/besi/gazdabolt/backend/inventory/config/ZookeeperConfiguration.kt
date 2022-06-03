@@ -11,7 +11,11 @@ import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 
 @Component
-class ZookeeperConfiguration {
+class ZookeeperConfiguration(
+	@Autowired val properties: InventoryServiceProperties,
+	@Autowired val curator: CuratorFramework,
+	@Autowired val serviceRegistration: ZookeeperAutoServiceRegistration
+) {
 
 	private class FailOnInsufficientResourcesNodeWatcher(
 		val curator: CuratorFramework,
@@ -34,24 +38,35 @@ class ZookeeperConfiguration {
 		}
 	}
 
-	@Autowired
-	private lateinit var properties: InventoryServiceProperties
-
-	@Autowired
-	private lateinit var curator: CuratorFramework
-
-	@Autowired
-	private lateinit var serviceRegistration: ZookeeperAutoServiceRegistration
-
 	@EventListener(ApplicationStartedEvent::class)
 	fun startServiceRegistration(event: ApplicationStartedEvent) {
 		serviceRegistration.start()
+		ensurePropertiesExistInZookeeper()
+		registerWatchers()
+	}
 
+	private fun ensurePropertiesExistInZookeeper() {
+		val failOnInsufficientResourcesConfigPath =
+			getServicePropertyConfigPath(InventoryServiceProperties.FAIL_ON_INSUFFICIENT_RESOURCES_KEY)
+
+		val result = curator.checkExists().forPath(failOnInsufficientResourcesConfigPath)
+		if (result == null) {
+			curator.create()
+				.creatingParentsIfNeeded()
+				.forPath(
+					failOnInsufficientResourcesConfigPath,
+					InventoryServiceProperties.Defaults.FAIL_ON_INSUFFICIENT_RESOURCES.toString().encodeToByteArray()
+				)
+		}
+	}
+
+	private fun registerWatchers() {
 		curator.watchers().add()
 			.usingWatcher(FailOnInsufficientResourcesNodeWatcher(curator, properties))
-			.forPath(
-				"/gazdabolt/config/inventory-service/gazdabolt.inventory-service.failOnInsufficientResources"
-			)
+			.forPath(getServicePropertyConfigPath(InventoryServiceProperties.FAIL_ON_INSUFFICIENT_RESOURCES_KEY))
 	}
+
+	private fun getServicePropertyConfigPath(propertyKey: String): String =
+		"/gazdabolt/config/inventory-service/${InventoryServiceProperties.PROPERTIES_PREFIX}.$propertyKey"
 
 }

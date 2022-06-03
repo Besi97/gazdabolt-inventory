@@ -1,9 +1,9 @@
 package dev.besi.gazdabolt.backend.inventory.config
 
 import dev.besi.gazdabolt.backend.inventory.AbstractIT
+import dev.besi.gazdabolt.backend.inventory.forPath
 import org.apache.curator.framework.CuratorFramework
 import org.apache.curator.framework.CuratorFrameworkFactory
-import org.apache.curator.framework.api.PathAndBytesable
 import org.apache.curator.retry.RetryOneTime
 import org.apache.curator.x.discovery.ServiceDiscoveryBuilder
 import org.apache.curator.x.discovery.ServiceInstance
@@ -17,7 +17,7 @@ import kotlin.test.Test
 class ZookeeperIT : AbstractIT() {
 
 	companion object {
-		const val CONFIG_PATH = "/gazdabolt/config/inventory-service/gazdabolt.inventory-service."
+		const val CONFIG_PATH = "/gazdabolt/config/inventory-service/${InventoryServiceProperties.PROPERTIES_PREFIX}."
 
 		lateinit var curator: CuratorFramework
 
@@ -30,13 +30,6 @@ class ZookeeperIT : AbstractIT() {
 			)
 			curator.start()
 			curator.blockUntilConnected()
-
-			curator.create().forPath("/gazdabolt")
-			curator.create().forPath("/gazdabolt/config")
-			curator.create().forPath("/gazdabolt/config/inventory-service")
-			curator.create().forPath("${CONFIG_PATH}failOnInsufficientResources", "false")
-
-			curator.create().forPath("/gazdabolt/services")
 		}
 	}
 
@@ -49,7 +42,7 @@ class ZookeeperIT : AbstractIT() {
 		assertThat(
 			"failOnInsufficientResources should be set to 'false'",
 			properties.failOnInsufficientResources,
-			equalTo(false)
+			equalTo(InventoryServiceProperties.Defaults.FAIL_ON_INSUFFICIENT_RESOURCES)
 		)
 	}
 
@@ -64,7 +57,7 @@ class ZookeeperIT : AbstractIT() {
 		curator.delete().forPath("${CONFIG_PATH}failOnInsufficientResources")
 		assertFailOnInsufficientResourcesCurrent(InventoryServiceProperties.Defaults.FAIL_ON_INSUFFICIENT_RESOURCES)
 
-		curator.create().forPath("${CONFIG_PATH}failOnInsufficientResources", "false")
+		curator.create().forPath("${CONFIG_PATH}failOnInsufficientResources", "true")
 	}
 
 	private fun assertFailOnInsufficientResourcesCurrent(expected: Boolean) {
@@ -101,6 +94,3 @@ class ZookeeperIT : AbstractIT() {
 	}
 
 }
-
-private fun <T> PathAndBytesable<T>.forPath(path: String, value: String): T =
-	this.forPath(path, value.toByteArray())
