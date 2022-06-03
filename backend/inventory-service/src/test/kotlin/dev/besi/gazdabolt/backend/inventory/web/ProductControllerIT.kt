@@ -27,7 +27,7 @@ class ProductControllerIT(
 	@Autowired val curator: CuratorFramework
 ) : AbstractIT() {
 
-	lateinit var persistedProducts: List<DbProduct>
+	private lateinit var persistedProducts: List<DbProduct>
 
 	@BeforeTest
 	fun initTestData() {
@@ -640,6 +640,71 @@ class ProductControllerIT(
 
 		graphQlTester.document(request)
 			.variable("id", "hope this ID does not exist")
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Could not find product by ID: hope this ID does not exist")
+					?: false
+			}
+			.verify()
+	}
+
+	@Test
+	fun `Ensure 'updateProduct' mutation works`() {
+		val request = """mutation UpdateProduct(${'$'}id: ID!, ${'$'}product: ApiProductInput!) {
+			|   product: updateProduct(id: ${'$'}id, updated: ${'$'}product) {
+			|       id
+			|       name
+			|       pluCode
+			|       barCode
+			|       description
+			|       price
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+		val product = persistedProducts[1]
+		val inputProduct = ApiProductInput(
+			"${product.name} updated",
+			pluCode = null,
+			barCode = 192837645,
+			price = 7777.7f,
+			description = product.description
+		)
+
+		graphQlTester.document(request)
+			.variable("id", product.id)
+			.variable("product", inputProduct.toMap())
+			.executeAndVerifyWithPath("product")
+			.entity(Map::class.java)
+			.satisfies {
+				assertThat("Response should have 7 fields!", it, aMapWithSize(7))
+				assertThat("ID should not change!", it, hasEntry("id", product.id))
+				assertThat("Name should be updated!", it, hasEntry("name", inputProduct.name))
+				assertThat("pluCode should be empty!", it, hasEntry("pluCode", null))
+				assertThat("barCode should be updated!", it, hasEntry("barCode", 192837645))
+				assertThat("Description should not have changed!", it, hasEntry("description", product.description))
+				assertThat("Price should be updated!", it["price"] as Double, closeTo(7777.7, 1.0))
+				assertThat("Stock count should have stayed the same!", it, hasEntry("stock", 0))
+			}
+
+		val persisted = repository.findByIdOrNull(product.id)
+		assertThat("Updated name should be persisted", persisted!!.name, equalTo(inputProduct.name))
+	}
+
+	@Test
+	fun `Ensure 'updateProduct' mutation handles unknown ID safely`() {
+		val request = """mutation UpdateProduct(${'$'}id: ID!, ${'$'}product: ApiProductInput!) {
+			|   product: updateProduct(id: ${'$'}id, updated: ${'$'}product) {
+			|       id
+			|       name
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("id", "hope this ID does not exist")
+			.variable("product", ApiProductInput(name = "new name").toMap())
 			.execute()
 			.errors()
 			.expect {

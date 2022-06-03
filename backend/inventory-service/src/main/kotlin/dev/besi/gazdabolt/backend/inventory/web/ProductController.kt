@@ -58,4 +58,12 @@ class ProductController(
 			throw IllegalArgumentError(e)
 		}
 
+	@MutationMapping
+	fun updateProduct(@Argument id: String, @Argument updated: ApiProductInput): ApiProduct =
+		try {
+			productService.updateProduct(id, updated).toApiProduct()
+		} catch (e: IllegalArgumentException) {
+			throw IllegalArgumentError(e)
+		}
+
 }

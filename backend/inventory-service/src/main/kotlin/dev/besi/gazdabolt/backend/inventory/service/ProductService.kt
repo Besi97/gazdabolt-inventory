@@ -3,6 +3,7 @@ package dev.besi.gazdabolt.backend.inventory.service
 import dev.besi.gazdabolt.backend.inventory.config.InventoryServiceProperties
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.repositories.ProductRepository
+import dev.besi.gazdabolt.backend.inventory.web.ApiProductInput
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -25,8 +26,7 @@ class ProductService(
 
 	@Throws(IllegalArgumentException::class)
 	fun incrementProduct(id: String, amount: Int): Product {
-		val product = repository.findByIdOrNull(id)
-		requireNotNull(product) { "Could not find product by ID: $id" }
+		val product = repository.findByIdRequireNotNull(id)
 
 		product.stock += amount
 		repository.save(product)
@@ -36,8 +36,7 @@ class ProductService(
 
 	@Throws(IllegalArgumentException::class)
 	fun decrementProduct(id: String, amount: Int): Product {
-		val product = repository.findByIdOrNull(id)
-		requireNotNull(product) { "Could not find product by ID: $id" }
+		val product = repository.findByIdRequireNotNull(id)
 
 		try {
 			product.stock -= amount
@@ -52,5 +51,23 @@ class ProductService(
 
 		return product.toDomainPojo()
 	}
+
+	@Throws(IllegalArgumentException::class)
+	fun updateProduct(id: String, updated: ApiProductInput): Product {
+		val product = repository.findByIdRequireNotNull(id)
+
+		product.name = updated.name
+		product.pluCode = updated.pluCode
+		product.barCode = updated.barCode
+		product.description = updated.description
+		product.price = updated.price.toDouble()
+		repository.save(product)
+
+		return product.toDomainPojo()
+	}
+
+	@Throws(IllegalArgumentException::class)
+	private fun ProductRepository.findByIdRequireNotNull(id: String): DbProduct =
+		findByIdOrNull(id) ?: throw IllegalArgumentException("Could not find product by ID: $id")
 
 }
