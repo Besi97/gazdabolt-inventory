@@ -1,5 +1,8 @@
 package dev.besi.gazdabolt.backend.inventory.config
 
+import graphql.language.DirectiveDefinition
+import graphql.schema.DirectiveInputValueTransformer
+import graphql.schema.GraphQLArgument
 import graphql.schema.GraphQLInputObjectField
 import graphql.schema.idl.SchemaDirectiveWiring
 import graphql.schema.idl.SchemaDirectiveWiringEnvironment
@@ -16,7 +19,7 @@ class SizeDirectiveWiring : SchemaDirectiveWiring {
 	): GraphQLInputObjectField {
 		val field = environment!!.element
 
-		environment.codeRegistry.inputFieldTransformer(DIRECTIVE_NAME) { directive, inputField, value ->
+		environment.codeRegistry.inputDirectiveTransformer(DIRECTIVE_NAME) { directive, inputField, value ->
 			if (value is String) {
 				val min = directive.getArgument("min").getValue<Int>()
 				val max = directive.getArgument("max").getValue<Int>()
@@ -39,6 +42,12 @@ class SizeDirectiveWiring : SchemaDirectiveWiring {
 }
 
 class NonNegativeDirectiveWiring : SchemaDirectiveWiring {
+	/*
+	The transformers registered in onInputObjectField and onArgument will override each other, one of the returned
+	transformer objects will get lost. However, those transformers are the same anyway, so no information lost all in
+	all.
+	 */
+
 	companion object {
 		const val DIRECTIVE_NAME = "NonNegative"
 	}
@@ -48,38 +57,55 @@ class NonNegativeDirectiveWiring : SchemaDirectiveWiring {
 	): GraphQLInputObjectField {
 		val field = environment!!.element
 
-		environment.codeRegistry.inputFieldTransformer(DIRECTIVE_NAME) { _, inputField, value ->
+		environment.codeRegistry.inputDirectiveTransformer(
+			DIRECTIVE_NAME,
+			getTransformer(environment.directive.definition!!)
+		)
+
+		return field
+	}
+
+	override fun onArgument(environment: SchemaDirectiveWiringEnvironment<GraphQLArgument>?): GraphQLArgument {
+		val field = environment!!.element
+
+		environment.codeRegistry.inputDirectiveTransformer(
+			DIRECTIVE_NAME,
+			getTransformer(environment.directive.definition!!)
+		)
+
+		return field
+	}
+
+	private fun getTransformer(directiveDefinition: DirectiveDefinition) =
+		DirectiveInputValueTransformer { _, input, value ->
 			when (value) {
 				is Int -> {
 					if (value < 0) {
-						throw exception(inputField.name, value)
+						throw exception(input.name, value)
 					}
 					value
 				}
 				is Long -> {
 					if (value < 0) {
-						throw exception(inputField.name, value)
+						throw exception(input.name, value)
 					}
 					value
 				}
 				is Float -> {
 					if (value < 0) {
-						throw exception(inputField.name, value)
+						throw exception(input.name, value)
 					}
 					value
 				}
 				is Double -> {
 					if (value < 0) {
-						throw exception(inputField.name, value)
+						throw exception(input.name, value)
 					}
 					value
 				}
-				else -> throw DirectiveIllegalLocationError(environment.directive.definition, inputField.name)
+				else -> throw DirectiveIllegalLocationError(directiveDefinition, input.name)
 			}
 		}
-
-		return field
-	}
 
 	private fun exception(fieldName: String, value: Number): Throwable =
 		ValidationException("Non-negative requirement not fulfilled for field $fieldName: $value")

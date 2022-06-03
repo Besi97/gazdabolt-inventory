@@ -15,7 +15,7 @@ class TrimDirectiveWiring : SchemaDirectiveWiring {
 	): GraphQLInputObjectField {
 		val field = environment!!.element
 
-		environment.codeRegistry.inputFieldTransformer(DIRECTIVE_NAME) { _, inputField, value ->
+		environment.codeRegistry.inputDirectiveTransformer(DIRECTIVE_NAME) { _, inputField, value ->
 			when (value) {
 				is String -> {
 					value.trim()

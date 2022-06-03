@@ -1,11 +1,15 @@
 package dev.besi.gazdabolt.backend.inventory.web
 
 import dev.besi.gazdabolt.backend.inventory.AbstractIT
+import dev.besi.gazdabolt.backend.inventory.config.InventoryServiceProperties
+import dev.besi.gazdabolt.backend.inventory.config.ZookeeperIT
+import dev.besi.gazdabolt.backend.inventory.forPath
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbCompositeProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.DbSimpleProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.entities.SubProduct
 import dev.besi.gazdabolt.backend.inventory.persistence.repositories.ProductRepository
+import org.apache.curator.framework.CuratorFramework
 import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,7 +23,8 @@ import kotlin.test.Test
 @AutoConfigureGraphQlTester
 class ProductControllerIT(
 	@Autowired val graphQlTester: GraphQlTester,
-	@Autowired val repository: ProductRepository
+	@Autowired val repository: ProductRepository,
+	@Autowired val curator: CuratorFramework
 ) : AbstractIT() {
 
 	lateinit var persistedProducts: List<DbProduct>
@@ -350,40 +355,52 @@ class ProductControllerIT(
 			.execute()
 			.errors()
 			.expect {
-				it.message?.contains("Exception while directive getting applied on input field: " +
-						"Maximum length requirement of 30 characters is not fulfilled for field name")
+				it.message?.contains(
+					"Exception while directive getting applied on input field: " +
+							"Maximum length requirement of 30 characters is not fulfilled for field name"
+				)
 					?: false
 			}
+			.verify()
 
 		graphQlTester.document(request)
 			.variable("product", ApiProductInput(name = "asdfghjklé", pluCode = -1).toMap())
 			.execute()
 			.errors()
 			.expect {
-				it.message?.contains("Exception while directive getting applied on input field: " +
-						"Non-negative requirement not fulfilled for field pluCode")
+				it.message?.contains(
+					"Exception while directive getting applied on input field: " +
+							"Non-negative requirement not fulfilled for field pluCode"
+				)
 					?: false
 			}
+			.verify()
 
 		graphQlTester.document(request)
 			.variable("product", ApiProductInput(name = "asd", barCode = -1).toMap())
 			.execute()
 			.errors()
 			.expect {
-				it.message?.contains("Exception while directive getting applied on input field: " +
-						"Non-negative requirement not fulfilled for field barCode")
+				it.message?.contains(
+					"Exception while directive getting applied on input field: " +
+							"Non-negative requirement not fulfilled for field barCode"
+				)
 					?: false
 			}
+			.verify()
 
 		graphQlTester.document(request)
 			.variable("product", ApiProductInput(name = "asd", price = -15.2f).toMap())
 			.execute()
 			.errors()
 			.expect {
-				it.message?.contains("Exception while directive getting applied on input field: " +
-						"Non-negative requirement not fulfilled for field price")
+				it.message?.contains(
+					"Exception while directive getting applied on input field: " +
+							"Non-negative requirement not fulfilled for field price"
+				)
 					?: false
 			}
+			.verify()
 	}
 
 	@Test
@@ -413,6 +430,223 @@ class ProductControllerIT(
 		val persisted = repository.findByIdOrNull(id)
 		assertThat("Product should be persisted!", persisted, notNullValue())
 		assertThat("Product name should be 'asdf'!", persisted!!.name, equalTo("asdf"))
+	}
+
+	@Test
+	fun `Ensure 'incrementStock' mutation works`() {
+		val request = """mutation IncrementStock(${'$'}id: ID!) {
+			|   product: incrementStock(id: ${'$'}id, amount: 4) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+		val id = persistedProducts[2].id
+		val stock = persistedProducts[2].stock
+
+		graphQlTester.document(request)
+			.variable("id", id)
+			.executeAndVerifyWithPath("product")
+			.entity(Map::class.java)
+			.satisfies {
+				run {
+					assertThat("Returned product should have 3 fields!", it, aMapWithSize(3))
+					assertThat("Returned product ID should match argument!", it["id"] as String, equalTo(id))
+					assertThat("Stock should have been incremented!", it["stock"] as Int, equalTo(stock + 4))
+				}
+			}
+
+		val persisted = repository.findByIdOrNull(id)
+		assertThat("Incremented stock should be persisted!", persisted!!.stock, equalTo(stock + 4))
+	}
+
+	@Test
+	fun `Ensure validation for 'incrementStock' works`() {
+		val request = """mutation IncrementStock(${'$'}id: ID!) {
+			|   product: incrementStock(id: ${'$'}id, amount: -2) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("id", persistedProducts[2].id)
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains(
+					"Exception while directive getting applied on input field: " +
+							"Non-negative requirement not fulfilled for field amount"
+				)
+					?: false
+			}
+			.verify()
+	}
+
+	@Test
+	fun `Ensure 'decrementStock' mutation works`() {
+		val request = """mutation DecrementStock(${'$'}id: ID!) {
+			|   product: decrementStock(id: ${'$'}id, amount: 2) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+		val id = persistedProducts[2].id
+		val stock = persistedProducts[2].stock
+
+		graphQlTester.document(request)
+			.variable("id", id)
+			.executeAndVerifyWithPath("product")
+			.entity(Map::class.java)
+			.satisfies {
+				run {
+					assertThat("Returned product should have 3 fields!", it, aMapWithSize(3))
+					assertThat("Returned product ID should match argument!", it["id"] as String, equalTo(id))
+					assertThat("Stock should have been decremented!", it["stock"] as Int, equalTo(stock - 2))
+				}
+			}
+
+		val persisted = repository.findByIdOrNull(id)
+		assertThat("Decremented stock should be persisted!", persisted!!.stock, equalTo(stock - 2))
+	}
+
+	@Test
+	fun `Ensure validation for 'decrementStock' works`() {
+		val request = """mutation DecrementStock(${'$'}id: ID!) {
+			|   product: decrementStock(id: ${'$'}id, amount: -2) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("id", persistedProducts[2].id)
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains(
+					"Exception while directive getting applied on input field: " +
+							"Non-negative requirement not fulfilled for field amount"
+				)
+					?: false
+			}
+			.verify()
+	}
+
+	@Test
+	fun `Ensure 'decrementStock' respects 'failOnInsufficientResources' config when false`() {
+		val request = """mutation DecrementStock(${'$'}id: ID!) {
+			|   product: decrementStock(id: ${'$'}id, amount: 10) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+		val id = persistedProducts[2].id
+
+		curator.setData()
+			.forPath(
+				"${ZookeeperIT.CONFIG_PATH}${InventoryServiceProperties.FAIL_ON_INSUFFICIENT_RESOURCES_KEY}",
+				"false"
+			)
+		Thread.sleep(30)
+
+		graphQlTester.document(request)
+			.variable("id", id)
+			.executeAndVerifyWithPath("product")
+			.entity(Map::class.java)
+			.satisfies {
+				run {
+					assertThat("Returned product should have 3 fields!", it, aMapWithSize(3))
+					assertThat("Returned product ID is not as expected!", it, hasEntry("id", id))
+					assertThat("Remaining stock should be 0!", it, hasEntry("stock", 0))
+				}
+			}
+	}
+
+	@Test
+	fun `Ensure 'decrementStock' respects 'failOnInsufficientResources' config when true`() {
+		val request = """mutation DecrementStock(${'$'}id: ID!) {
+			|   product: decrementStock(id: ${'$'}id, amount: 10) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+		val id = persistedProducts[2].id
+
+		curator.setData()
+			.forPath(
+				"${ZookeeperIT.CONFIG_PATH}${InventoryServiceProperties.FAIL_ON_INSUFFICIENT_RESOURCES_KEY}",
+				"true"
+			)
+		Thread.sleep(30)
+
+		graphQlTester.document(request)
+			.variable("id", id)
+			.execute()
+			.errors()
+			.expect {
+				println(it.message)
+				it.message?.contains(
+					"Product stock quantity can not be set to a negative number: -7"
+				)
+					?: false
+			}
+			.verify()
+	}
+
+	@Test
+	fun `Ensure 'incrementStock' mutation handles unknown ID safely`() {
+		val request = """mutation IncrementStock(${'$'}id: ID!) {
+			|   product: incrementStock(id: ${'$'}id, amount: 2) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("id", "hope this ID does not exist")
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Could not find product by ID: hope this ID does not exist")
+					?: false
+			}
+			.verify()
+	}
+
+	@Test
+	fun `Ensure 'decrementStock' mutation handles unknown ID safely`() {
+		val request = """mutation DecrementStock(${'$'}id: ID!) {
+			|   product: decrementStock(id: ${'$'}id, amount: 1) {
+			|       id
+			|       name
+			|       stock
+			|   }
+			|}
+		""".trimMargin()
+
+		graphQlTester.document(request)
+			.variable("id", "hope this ID does not exist")
+			.execute()
+			.errors()
+			.expect {
+				it.message?.contains("Could not find product by ID: hope this ID does not exist")
+					?: false
+			}
+			.verify()
 	}
 
 }

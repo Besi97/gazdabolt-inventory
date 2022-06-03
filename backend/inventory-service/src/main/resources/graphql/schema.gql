@@ -7,6 +7,8 @@ type Query {
 
 type Mutation {
     createProduct(product: ApiProductInput!): ApiProduct
+    incrementStock(id: ID!, amount: Int! @NonNegative): ApiProduct
+    decrementStock(id: ID!, amount: Int! @NonNegative): ApiProduct
 }
 
 interface ApiProduct {

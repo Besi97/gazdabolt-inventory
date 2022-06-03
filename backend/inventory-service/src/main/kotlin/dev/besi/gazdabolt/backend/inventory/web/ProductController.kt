@@ -1,5 +1,6 @@
 package dev.besi.gazdabolt.backend.inventory.web
 
+import dev.besi.gazdabolt.backend.inventory.error.IllegalArgumentError
 import dev.besi.gazdabolt.backend.inventory.service.Product
 import dev.besi.gazdabolt.backend.inventory.service.ProductService
 import dev.besi.gazdabolt.backend.inventory.service.SimpleProduct
@@ -40,5 +41,21 @@ class ProductController(
 			price = product.price.toDouble()
 		)
 	).toApiProduct()
+
+	@MutationMapping
+	fun incrementStock(@Argument id: String, @Argument amount: Int): ApiProduct =
+		try {
+			productService.incrementProduct(id, amount).toApiProduct()
+		} catch (e: IllegalArgumentException) {
+			throw IllegalArgumentError(e)
+		}
+
+	@MutationMapping
+	fun decrementStock(@Argument id: String, @Argument amount: Int): ApiProduct =
+		try {
+			productService.decrementProduct(id, amount).toApiProduct()
+		} catch (e: IllegalArgumentException) {
+			throw IllegalArgumentError(e)
+		}
 
 }
